@@ -69,7 +69,14 @@ class Client:
         self.socket.close()
 
 if __name__ == "__main__":
-    HOST = '127.0.0.1'
-    PORT = 7632
-    client = Client(HOST, PORT)
+    print("=== CLIENTE PyCHAT TCP ===")
+    host = input("Digite o IP do servidor: ").strip()
+    if not host:
+        host = "127.0.0.1"
+        print("Nenhum IP informado. Conectando ao localhost (127.0.0.1).")
+
+    port_input = input("Digite a porta (padrão 7632): ").strip()
+    port = int(port_input) if port_input else 7632
+
+    client = Client(host, port)
     client.connect()

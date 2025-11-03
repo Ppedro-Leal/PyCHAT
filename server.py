@@ -1,5 +1,7 @@
+import os
 import socket
 from threading import Thread
+import time
 
 class Server:
     Clientes = []
@@ -85,13 +87,82 @@ class Server:
                 
                 
     # ve todos os clientes e envia mensagem all
-    # Sender name é variavel para armazenar quem enviou a mensagem
-    def mensagem_all(self, sender_name, mensagem):
+    
+    def mensagem_all(self, sender_name, mensagem): # Sender name é variavel para armazenar quem enviou a mensagem
         for cliente in self.Clientes:
              if cliente['cliente_nome'] != sender_name:
                 texto = f"FROM {sender_name} [all]: {mensagem}"
                 cliente['cliente_socket'].send(texto.encode())
+                
+                
+    # Função para obter o IP local da máquina    
+def get_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # Não se conecta de verdade, apenas simula uma conexão para obter o IP de saída
+        s.connect(('10.255.255.255', 1))
+        IP = s.getsockname()[0]
+    except Exception:
+        IP = '127.0.0.1' # Retorna localhost ou 0.0.0.0 se não conseguir
+    finally:
+        s.close()
+    return IP
 
 if __name__ == '__main__':
-     server = Server('127.0.0.1', 7632)
-     server.nova_conexao()
+    local_ip_rede = get_local_ip() # Chama a função para obter o IP local
+    local_ip = local_ip_rede # Usa o IP obtido
+
+    porta = 7632 # Porta padrão do servidor
+    def start_server():
+        global server
+        server = Server('0.0.0.0', porta)
+        print("\n Servidor iniciado e aguardando conexões...")
+        print(f" Endereço IP para conexão dos clientes: {local_ip}:{porta}\n")
+        Thread(target=server.nova_conexao, daemon=True).start()
+
+    def admin_console():
+        while True:
+            print("\n===== MENU DO SERVIDOR =====")
+            print("1 - Desligar servidor")
+            print("2 - Reiniciar servidor")
+            print("3 - Mostrar usuários conectados")
+            print("============================")
+            opcao = input("Escolha uma opção: ").strip()
+
+            if opcao == "1":
+                print("Encerrando servidor e desconectando todos os clientes...")
+                for cliente in server.Clientes[:]:
+                    try:
+                        cliente['cliente_socket'].send("Servidor foi encerrado.".encode())
+                        cliente['cliente_socket'].close()
+                    except:
+                        pass
+                server.socket.close()
+                print("Servidor encerrado com sucesso.")
+                os._exit(0)
+
+            elif opcao == "2":
+                print("Reiniciando servidor...")
+                for cliente in server.Clientes[:]:
+                    try:
+                        cliente['cliente_socket'].send("Servidor será reiniciado.".encode())
+                        cliente['cliente_socket'].close()
+                    except:
+                        pass
+                server.socket.close()
+                time.sleep(2)
+                print("Servidor reiniciado!\n")
+                start_server()
+
+            elif opcao == "3":
+                nomes = [c['cliente_nome'] for c in server.Clientes]
+                if nomes:
+                    print("Usuários conectados:", ", ".join(nomes))
+                else:
+                    print("Nenhum cliente conectado.")
+
+            else:
+                print("Opção inválida. Escolha 1, 2 ou 3.")
+
+    start_server()
+    admin_console()
